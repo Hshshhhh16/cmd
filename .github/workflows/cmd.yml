@@ -1,0 +1,83 @@
+#!/bin/sh
+
+#@title **Create User**
+#@markdown Enter Username and Password
+
+import os
+
+username = "user" #@param {type:"string"}
+password = "root" #@param {type:"string"}
+
+print("Creating User and Setting it up")
+
+# Creation of user
+os.system(f"useradd -m {username}")
+
+# Add user to sudo group
+os.system(f"adduser {username} sudo")
+    
+# Set password of user to 'root'
+os.system(f"echo '{username}:{password}' | sudo chpasswd")
+
+# Change default shell from sh to bash
+os.system("sed -i 's/\/bin\/sh/\/bin\/bash/g' /etc/passwd")
+
+print("User Created and Configured")
+
+#@title **SSH**
+
+! pip install colab_ssh --upgrade &> /dev/null
+
+Ngrok = True #@param {type:'boolean'}
+Agro = False #@param {type:'boolean'}
+
+
+#@markdown Copy authtoken from https://dashboard.ngrok.com/auth (only for ngrok)
+ngrokToken = "1oCpFScYN18vuOpghRxzklCl6sb_6WxKM1cg9ZHCUUiaS2hHC" #@param {type:'string'}
+
+
+def runNGROK():
+    from colab_ssh import launch_ssh
+    from IPython.display import clear_output
+    launch_ssh(ngrokToken, password)
+    clear_output()
+
+    print("ssh", username, end='@')
+    ! curl -s http://localhost:4040/api/tunnels | python3 -c \
+            "import sys, json; print(json.load(sys.stdin)['tunnels'][0]['public_url'][6:].replace(':', ' -p '))"
+
+
+def runAgro():
+    from colab_ssh import launch_ssh_cloudflared
+    launch_ssh_cloudflared(password=password)
+
+
+try:
+    if username:
+        pass
+    elif password:
+        pass
+except NameError:
+    print("No user found using username and password as 'root'")
+    username='root'
+    password='root'
+
+
+if Agro and Ngrok:
+    print("You can't do that")
+    print("Select only one of them")
+elif Agro:
+    runAgro()
+elif Ngrok:
+    if ngrokToken == "":
+        print("No ngrokToken Found, Please enter it")
+    else:
+        runNGROK()
+else:
+    print("Select one of them")
+
+#@title **MAKE ALIVE VPS 12 HOURS** 
+ 
+alive = True #@param {type:'boolean'}
+ 
+! sleep 4320000000
